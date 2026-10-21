@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 /**
  * escpr-compiler.js
@@ -20,7 +19,7 @@
  *
  * Configuración opcional:
  *   PDFTORASTER=/ruta/a/pdftoraster
- *   EPSON_FILTER=/ruta/a/epson-escpr
+ *   EPSON_FILTER=/ruta/a/epson-escpr-wrapper
  *   EPSON_PPD=/ruta/al/perfil.ppd
  */
 
@@ -39,7 +38,7 @@ const PDFTORASTER =
 
 const EPSON_FILTER =
   process.env.EPSON_FILTER ||
-  path.resolve("src/epson-escpr");
+  path.resolve("src/epson-escpr-wrapper");
 
 const EPSON_PPD = process.env.EPSON_PPD;
 

@@ -454,7 +454,14 @@ get_option_for_ppd (const char *printer, filter_option_t *filter_opt_p)
 	char *tok;
 
 	/* Get option from PPD. */
-	ppd_path = (char *) cupsGetPPD (printer);
+	ppd_path = getenv ("PPD");
+	if (ppd_path == NULL || ppd_path[0] == '\0')
+	{
+		ppd_path = (char *) cupsGetPPD (printer);
+	}
+	if (ppd_path == NULL)
+		return 1;
+
 	ppd_p = ppdOpenFile (ppd_path);
 	if(NULL == ppd_p){
 		return 1;

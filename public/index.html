@@ -96,6 +96,15 @@
       <h1>Conversor Epson L355</h1>
       <p>Sube uno o varios PDFs para probar la conversión con el flujo Epson ESC/P-R.</p>
 
+      <section aria-labelledby="printer-heading">
+        <h2 id="printer-heading">Comprobar conexión con la impresora</h2>
+        <p>Escribe la IP local de la impresora para comprobar TCP 9100. Ejecuta el servidor en un equipo de la misma red Wi-Fi. Esta prueba no envía datos ni imprime.</p>
+        <label for="printerHost">IP de la impresora</label>
+        <input id="printerHost" type="text" inputmode="decimal" autocomplete="off" placeholder="192.168.1.50" />
+        <button id="checkPrinter" type="button">Comprobar puerto 9100</button>
+        <div id="printerStatus" class="status" role="status" aria-live="polite"></div>
+      </section>
+
       <form id="uploadForm">
         <input id="fileInput" type="file" accept="application/pdf" multiple />
 
@@ -149,6 +158,51 @@
       const status = document.getElementById('status');
       const results = document.getElementById('results');
       const result = document.getElementById('result');
+      const checkPrinterButton = document.getElementById('checkPrinter');
+      const printerHostInput = document.getElementById('printerHost');
+      const printerStatus = document.getElementById('printerStatus');
+
+      checkPrinterButton.addEventListener('click', async () => {
+        checkPrinterButton.disabled = true;
+        checkPrinterButton.textContent = 'Comprobando…';
+        printerStatus.textContent = 'Probando conexión TCP al puerto 9100…';
+        printerStatus.className = 'status';
+        printerStatus.style.display = 'block';
+
+        try {
+          const response = await fetch('/api/printer-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ host: printerHostInput.value })
+          });
+          const data = await parseResponse(response);
+          if (!response.ok) {
+            throw new Error(data?.error || 'No se pudo comprobar la conexión.');
+          }
+
+          printerStatus.textContent = `${data.message} Esto solo comprueba conectividad; no confirma que haya papel, que la impresora esté lista ni que acepte este trabajo ESC/P-R.`;
+          printerStatus.className = data.reachable ? 'status success' : 'status error';
+        } catch (error) {
+          printerStatus.textContent = error.message || 'No se pudo comprobar la conexión.';
+          printerStatus.className = 'status error';
+        } finally {
+          checkPrinterButton.disabled = false;
+          checkPrinterButton.textContent = 'Comprobar puerto 9100';
+        }
+      });
+
+      async function parseResponse(response) {
+        const text = await response.text();
+        if (!text) {
+          return null;
+        }
+
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error('El servidor devolvió una respuesta no válida.');
+        }
+      }
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -176,25 +230,44 @@
             body: formData
           });
 
-          const data = await response.json();
+          const data = await parseResponse(response);
 
           if (!response.ok) {
-            throw new Error(data.error || 'Error en la conversión');
+            throw new Error(data?.error || 'Error en la conversión');
+          }
+
+          if (!data || !Array.isArray(data.results)) {
+            throw new Error('El servidor devolvió una respuesta no válida.');
           }
 
           showStatus(`${data.results.length} archivo(s) convertidos correctamente.`, 'success');
 
-          const cards = data.results.map(item => `
-            <div class="result-card">
-              <strong>${item.input}</strong><br />
-              <span>Bytes: ${item.outputBytes}</span><br />
-              <span>Calidad: ${item.mediaType}</span><br />
-              <span>Papel: ${item.paperSize}</span><br />
-              <a class="download-link" href="${item.downloadUrl}">Descargar salida</a>
-            </div>
-          `).join('');
+          for (const item of data.results) {
+            const card = document.createElement('div');
+            card.className = 'result-card';
 
-          results.innerHTML = cards;
+            const input = document.createElement('strong');
+            input.textContent = item.input;
+            card.append(input, document.createElement('br'));
+
+            for (const [label, value] of [
+              ['Bytes', item.outputBytes],
+              ['Calidad', item.mediaType],
+              ['Papel', item.paperSize]
+            ]) {
+              const detail = document.createElement('span');
+              detail.textContent = `${label}: ${value}`;
+              card.append(detail, document.createElement('br'));
+            }
+
+            const download = document.createElement('a');
+            download.className = 'download-link';
+            download.href = item.downloadUrl;
+            download.textContent = 'Descargar salida';
+            card.append(download);
+            results.append(card);
+          }
+
           result.textContent = JSON.stringify(data, null, 2);
         } catch (error) {
           showStatus(error.message || 'Error inesperado.', 'error');

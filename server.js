@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import fs from "node:fs/promises";
 import path from "node:path";
+import net from "node:net";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -12,7 +13,7 @@ const UPLOAD_ROOT = path.join(__dirname, "tmp", "uploads");
 const OUTPUT_ROOT = path.join(__dirname, "tmp", "output");
 
 const defaultPpd = path.join(__dirname, "ppd", "Epson-L355-epson-escpr-en.ppd");
-const defaultFilter = path.join(__dirname, "src", "epson-escpr");
+const defaultFilter = path.join(__dirname, "src", "epson-escpr-wrapper");
 const defaultPdfToRaster = process.env.PDFTORASTER || "/usr/lib/cups/filter/pdftoraster";
 
 const app = express();
@@ -75,6 +76,59 @@ async function compileSinglePdf({ inputPath, outputPath, env }) {
   });
 }
 
+function isPrivateIPv4(address) {
+  const octets = address.split(".").map(Number);
+  return (
+    octets[0] === 10 ||
+    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168)
+  );
+}
+
+function checkPrinterPort(host) {
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host, port: 9100 });
+    let settled = false;
+
+    const finish = result => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      socket.destroy();
+      resolve(result);
+    };
+
+    socket.setTimeout(3000, () => {
+      finish({
+        reachable: false,
+        message: "No hubo respuesta en TCP 9100 antes del tiempo límite."
+      });
+    });
+
+    socket.once("connect", () => {
+      finish({
+        reachable: true,
+        message: "Se pudo abrir una conexión TCP con el puerto 9100."
+      });
+    });
+
+    socket.once("error", error => {
+      if (settled) {
+        return;
+      }
+
+      const message = error.code === "ECONNREFUSED"
+        ? "El equipo respondió, pero rechazó la conexión en el puerto 9100."
+        : error.code === "EHOSTUNREACH" || error.code === "ENETUNREACH"
+          ? "No se pudo alcanzar esa IP desde el equipo que ejecuta el servidor."
+          : "No se pudo conectar al puerto 9100.";
+
+      finish({ reachable: false, message });
+    });
+  });
+}
+
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
@@ -84,6 +138,19 @@ app.get("/health", (_req, res) => {
     filter: defaultFilter,
     pdfToRaster: defaultPdfToRaster
   });
+});
+
+app.post("/api/printer-check", async (req, res) => {
+  const host = typeof req.body?.host === "string" ? req.body.host.trim() : "";
+  if (!net.isIPv4(host) || !isPrivateIPv4(host)) {
+    return res.status(400).json({
+      ok: false,
+      error: "Ingresa una dirección IPv4 privada válida de tu red local."
+    });
+  }
+
+  const result = await checkPrinterPort(host);
+  return res.json({ ok: true, host, port: 9100, ...result });
 });
 
 app.post("/api/print", upload.array("files", 10), async (req, res) => {
@@ -124,8 +191,6 @@ app.post("/api/print", upload.array("files", 10), async (req, res) => {
       const { outputSize } = await compileSinglePdf({ inputPath, outputPath, env });
       const fileName = path.basename(outputPath);
 
-      await fs.unlink(inputPath).catch(() => {});
-
       results.push({
         ok: true,
         input: file.originalname,
@@ -151,11 +216,26 @@ app.post("/api/print", upload.array("files", 10), async (req, res) => {
       ok: false,
       error: error.message || "Error inesperado en la conversión."
     });
+  } finally {
+    const files = req.files || [];
+    await Promise.all(files.map(async file => {
+      try {
+        await fs.unlink(file.path);
+      } catch (error) {
+        if (error.code !== "ENOENT") {
+          console.error(`No se pudo eliminar el archivo temporal ${file.path}:`, error);
+        }
+      }
+    }));
   }
 });
 
 app.get("/api/download/:fileName", async (req, res) => {
-  const fileName = decodeURIComponent(req.params.fileName);
+  const { fileName } = req.params;
+  if (!/^\d+-[a-z0-9]{8}\.bin$/.test(fileName)) {
+    return res.status(404).json({ ok: false, error: "Archivo no encontrado." });
+  }
+
   const filePath = path.join(OUTPUT_ROOT, fileName);
 
   try {
@@ -164,7 +244,11 @@ app.get("/api/download/:fileName", async (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.send(file);
   } catch (error) {
-    res.status(404).json({ ok: false, error: "Archivo no encontrado." });
+    if (error.code === "ENOENT") {
+      return res.status(404).json({ ok: false, error: "Archivo no encontrado." });
+    }
+    console.error(error);
+    return res.status(500).json({ ok: false, error: "No se pudo leer el archivo." });
   }
 });
 

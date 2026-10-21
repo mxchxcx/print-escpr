@@ -3,3 +3,21 @@ tmp/
 *.bin
 *.log
 .DS_Store
+
+# Autotools and compiler outputs
+Makefile
+config.h
+config.status
+config.log
+stamp-h1
+autom4te.cache/
+libtool
+**/.deps/
+**/.libs/
+*.lo
+*.la
+*.o
+*.Po
+*.Plo
+src/epson-escpr
+src/epson-escpr-wrapper
