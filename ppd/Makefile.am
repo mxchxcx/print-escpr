@@ -148,6 +148,7 @@ Epson-EW-M770T_Series-epson-escpr-en.ppd \
 Epson-EW-M970A3T_Series-epson-escpr-en.ppd \
 Epson-K200-epson-escpr-en.ppd \
 Epson-K300-epson-escpr-en.ppd \
+Epson-L355-epson-escpr-en.ppd \
 Epson-L364_Series-epson-escpr-en.ppd \
 Epson-L375_Series-epson-escpr-en.ppd \
 Epson-L385_Series-epson-escpr-en.ppd \

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conversor Epson L355</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f7fb;
+        color: #1f2937;
+        margin: 0;
+        padding: 32px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 32px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin: 18px 0;
+      }
+      input[type="file"], select, input[type="number"], button {
+        width: 100%;
+        margin-top: 8px;
+      }
+      input[type="file"], select, input[type="number"] {
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+      }
+      button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 12px 18px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+      .status {
+        margin-top: 20px;
+        padding: 14px;
+        border-radius: 8px;
+        background: #eef2ff;
+        display: none;
+      }
+      .status.error {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .status.success {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .results {
+        margin-top: 20px;
+      }
+      .result-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 14px;
+      }
+      .download-link {
+        display: inline-block;
+        margin-top: 12px;
+        background: #0f766e;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        text-decoration: none;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Conversor Epson L355</h1>
+      <p>Sube uno o varios PDFs para probar la conversión con el flujo Epson ESC/P-R.</p>
+
+      <form id="uploadForm">
+        <input id="fileInput" type="file" accept="application/pdf" multiple />
+
+        <div class="grid">
+          <div>
+            <label for="paperSize">Tamaño de papel</label>
+            <select id="paperSize">
+              <option value="A4">A4</option>
+              <option value="Letter">Letter</option>
+              <option value="Legal">Legal</option>
+              <option value="A5">A5</option>
+              <option value="A6">A6</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="mediaType">Calidad</label>
+            <select id="mediaType">
+              <option value="PLAIN_NORMAL">Normal</option>
+              <option value="PLAIN_HIGH">Alta</option>
+              <option value="PMPHOTO_NORMAL">Foto normal</option>
+              <option value="PMPHOTO_HIGH">Foto alta</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="ink">Modo tinta</label>
+            <select id="ink">
+              <option value="COLOR">Color</option>
+              <option value="MONO">Blanco y negro</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="copies">Copias</label>
+            <input id="copies" type="number" min="1" max="10" value="1" />
+          </div>
+        </div>
+
+        <button type="submit">Convertir PDF(s)</button>
+      </form>
+
+      <div id="status" class="status"></div>
+      <div id="results" class="results"></div>
+      <pre id="result"></pre>
+    </div>
+
+    <script>
+      const form = document.getElementById('uploadForm');
+      const fileInput = document.getElementById('fileInput');
+      const status = document.getElementById('status');
+      const results = document.getElementById('results');
+      const result = document.getElementById('result');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const files = Array.from(fileInput.files || []);
+        if (!files.length) {
+          showStatus('Selecciona al menos un PDF.', 'error');
+          return;
+        }
+
+        showStatus('Procesando archivos…', 'success');
+        results.innerHTML = '';
+        result.textContent = '';
+
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
+        formData.append('paperSize', document.getElementById('paperSize').value);
+        formData.append('mediaType', document.getElementById('mediaType').value);
+        formData.append('ink', document.getElementById('ink').value);
+        formData.append('copies', document.getElementById('copies').value);
+
+        try {
+          const response = await fetch('/api/print', {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Error en la conversión');
+          }
+
+          showStatus(`${data.results.length} archivo(s) convertidos correctamente.`, 'success');
+
+          const cards = data.results.map(item => `
+            <div class="result-card">
+              <strong>${item.input}</strong><br />
+              <span>Bytes: ${item.outputBytes}</span><br />
+              <span>Calidad: ${item.mediaType}</span><br />
+              <span>Papel: ${item.paperSize}</span><br />
+              <a class="download-link" href="${item.downloadUrl}">Descargar salida</a>
+            </div>
+          `).join('');
+
+          results.innerHTML = cards;
+          result.textContent = JSON.stringify(data, null, 2);
+        } catch (error) {
+          showStatus(error.message || 'Error inesperado.', 'error');
+          result.textContent = error.stack || error.message;
+        }
+      });
+
+      function showStatus(message, type) {
+        status.textContent = message;
+        status.className = 'status ' + type;
+        status.style.display = 'block';
+      }
+    </script>
+  </body>
+</html>

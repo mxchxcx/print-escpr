@@ -1,0 +1,78 @@
+*PPD-Adobe: "4.3"
+*% Adobe Systems PostScript(R) Printer Description File
+*% Copyright (c) SEIKO EPSON Corporation. 2026
+*% Generated as a compatibility template for the EPSON L355.
+*FormatVersion: "4.3"
+*FileVersion: "1.0"
+*LanguageVersion: English
+*LanguageEncoding: ISOLatin1
+*PCFileName: "EPL355.PPD"
+*Product: "(EPSON L355)"
+*PSVersion: "(3010.000) 550"
+*ModelName: "EPSON L355"
+*ShortNickName: "EPSON L355"
+*NickName: "EPSON L355 , Epson Inkjet Printer Driver (ESC/P-R) for Linux"
+*Manufacturer: "Epson"
+*LanguageLevel: "3"
+*ColorDevice: True
+*DefaultColorSpace: RGB
+*FileSystem: True
+*Throughput: "1"
+*TTRasterizer: Type42
+*cupsLanguages: "en"
+*cupsVersion: 1.2
+*cupsManualCopies: True
+*cupsModelNumber: 1
+*cupsFilter: "application/vnd.cups-raster 0 epson-escpr-wrapper"
+*LandscapeOrientation: Plus90
+*VariablePaperSize: False
+*1284DeviceID: "MFG:Epson;MDL:L355;DES:EPSON L355;"
+
+*OpenUI *PageSize: PickOne
+*OrderDependency: 10 AnySetup *PageSize
+*DefaultPageSize: A4
+*PageSize A4/A4: "<</PageSize[595.20 841.80]/ImagingBBox null>>setpagedevice"
+*PageSize Letter/US Letter: "<</PageSize[612.00 792.00]/ImagingBBox null>>setpagedevice"
+*PageSize Legal/US Legal: "<</PageSize[612.00 1008.00]/ImagingBBox null>>setpagedevice"
+*PageSize A5/A5: "<</PageSize[419.60 595.20]/ImagingBBox null>>setpagedevice"
+*PageSize B5/JIS B5: "<</PageSize[516.00 728.60]/ImagingBBox null>>setpagedevice"
+*PageSize A6/A6: "<</PageSize[297.60 419.60]/ImagingBBox null>>setpagedevice"
+*PageSize 4x6/10 x 15 cm (4 x 6 in): "<</PageSize[288.00 432.00]/ImagingBBox null>>setpagedevice"
+*PageSize 2L/13 x 18 cm (5 x 7 in): "<</PageSize[360.00 504.40]/ImagingBBox null>>setpagedevice"
+*CloseUI: *PageSize
+
+*OpenUI *MediaType/Print Quality: PickOne
+*OrderDependency: 20 AnySetup *MediaType
+*DefaultMediaType: PLAIN_NORMAL
+*MediaType PLAIN_HIGH/plain papers-High: "<</HWResolution[360 360]>>setpagedevice"
+*MediaType PLAIN_NORMAL/plain papers-Standard: "<</HWResolution[360 360]>>setpagedevice"
+*MediaType PMMATT_HIGH/Epson Matte-High: "<</HWResolution[360 360]>>setpagedevice"
+*MediaType PMMATT_NORMAL/Epson Matte-Standard: "<</HWResolution[360 360]>>setpagedevice"
+*MediaType PMPHOTO_HIGH/Epson Premium Glossy-High: "<</HWResolution[360 360]>>setpagedevice"
+*MediaType PMPHOTO_NORMAL/Epson Premium Glossy-Standard: "<</HWResolution[360 360]>>setpagedevice"
+*MediaType ENV_HIGH/Envelope-High: "<</HWResolution[360 360]>>setpagedevice"
+*MediaType ENV_NORMAL/Envelope-Standard: "<</HWResolution[360 360]>>setpagedevice"
+*CloseUI: *MediaType
+
+*OpenUI *Ink/Grayscale: PickOne
+*OrderDependency: 120 AnySetup *Ink
+*DefaultInk: COLOR
+*Ink COLOR/Off: "<</cupsBitsPerColor 8/cupsColorOrder 0/cupsColorSpace 1/cupsCompression 1>>setpagedevice"
+*Ink MONO/On: "<</cupsBitsPerColor 8/cupsColorOrder 0/cupsColorSpace 0/cupsCompression 1>>setpagedevice"
+*CloseUI: *Ink
+
+*DefaultResolution: 360dpi
+*OpenUI *Resolution/Resolution: PickOne
+*OrderDependency: 30 AnySetup *Resolution
+*DefaultResolution: 360dpi
+*Resolution 360dpi/360 dpi: "<</HWResolution[360 360]>>setpagedevice"
+*CloseUI: *Resolution
+
+*OpenUI *ColorModel/Color Mode: PickOne
+*OrderDependency: 40 AnySetup *ColorModel
+*DefaultColorModel: RGB
+*ColorModel RGB/RGB: ""
+*ColorModel CMYK/CMYK: ""
+*CloseUI: *ColorModel
+
+*% End of PPD
